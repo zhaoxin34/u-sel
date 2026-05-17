@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "Running checks..."
+make check || exit 1
+
+echo "All checks passed!"

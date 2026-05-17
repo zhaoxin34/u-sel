@@ -1,0 +1,19 @@
+- title: pi
+  group: pi
+  description: 启动 PI，继续上次会话
+  output: pi -c
+
+- title: pi --no-session
+  group: pi
+  description: 启动 PI，不持久化会话
+  output: pi --no-session
+
+- title: New Terminal
+  group: system
+  description: 在当前目录打开新终端
+  output: new-tab
+
+- title: Clear Screen
+  group: system
+  description: 清屏
+  output: clear
