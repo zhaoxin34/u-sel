@@ -1,5 +1,6 @@
 """CLI entry point for usel."""
 
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -25,7 +26,13 @@ from .config import DEFAULT_CONFIG_PATH, load_config
     is_flag=True,
     help="List all available selections and exit",
 )
-def main(config: Any, list_items: bool) -> None:
+@click.option(
+    "-e",
+    "--execute",
+    is_flag=True,
+    help="Execute the selected command directly instead of printing",
+)
+def main(config: Any, list_items: bool, execute: bool) -> None:
     """Search and select command picker for zellij.
 
     Reads configuration from ~/.config/u-sel/sels.yml by default,
@@ -58,7 +65,11 @@ def main(config: Any, list_items: bool) -> None:
     result = run_app(cfg.items)
 
     if result:
-        click.echo(result)
+        if execute:
+            # 直接执行命令
+            subprocess.run(result, shell=True)
+        else:
+            click.echo(result)
 
 
 if __name__ == "__main__":

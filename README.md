@@ -43,3 +43,20 @@ sels.yml 从~/.config/u-sel/sels.yml中获取，示例如下
 ### 应用方法
 
 zellij action new-pane --floating --width 60% --height 60% --x 20% --y %20 -c -- bash -c "$(usel)"
+
+## 试着勇敢一点
+
+之前的实现方法很好，但是还是可以更进一步。
+
+我是这么想的，output是不是可以嵌套，比如
+
+```
+- title: echo
+  group: echo something
+  output: echo "{{poem}}"
+- title: 白日
+  group: poem
+  output: 白日依山尽
+```
+
+当使用usel进入界面后，我可以先选择echo，按下回车，此时应该输出 echo "{{poem}}", 代码发现里面包含`{{poem}}`, 其中，poem就是个group，则应该再生成一下候选项，然后，最终会输出 echo "白日依山尽", 假设 白日 对应的output还是带有 `{{}}`的，比如变成 echo "白日依山尽 {{poem}}", 则再生成一次，直至`{{}}`不再存在。
