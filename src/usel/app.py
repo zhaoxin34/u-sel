@@ -179,9 +179,9 @@ class USelApp(App):
         self._display_selections: list[Selection] = []
 
     def compose(self) -> ComposeResult:
-        yield Input(placeholder="Search...", id="search-input")
         yield Static("", id="prompt-area")
         yield Input(placeholder="", id="resolve-input")
+        yield Input(placeholder="Search...", id="search-input")
         yield VerticalScroll(id="results")
         yield Static("↵ confirm  q quit", id="hint")
 
