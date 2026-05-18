@@ -180,18 +180,19 @@ class USelApp(App):
 
     def compose(self) -> ComposeResult:
         yield Static("", id="prompt-area")
-        yield Input(placeholder="", id="resolve-input")
         yield Input(placeholder="Search...", id="search-input")
+        yield Input(placeholder="", id="resolve-input")
         yield VerticalScroll(id="results")
         yield Static("↵ confirm  q quit", id="hint")
 
     def on_mount(self) -> None:
         """Initialize the app."""
+        resolve_input = self.query_one("#resolve-input", Input)
+        resolve_input.display = False
         input_widget = self.query_one("#search-input", Input)
         input_widget.focus()
         self._mode = "searching"
         self._display_selections = list(self._sorted_selections)
-        self._hide_resolve_ui()
         self._do_search("")
 
     def _hide_resolve_ui(self) -> None:
