@@ -201,25 +201,24 @@ class USelApp(App):
         self._display_selections = list(self._sorted_selections)
         self._do_search("")
 
-    def _hide_resolve_ui(self) -> None:
-        """隐藏 resolve 模式的 UI 元素。"""
+    def _set_prompt_area(self, text: str) -> None:
+        """设置 prompt-area 的显示文本和可见性。"""
+        prompt_area = self.query_one("#prompt-area", Static)
+        prompt_area.update(f"[dim #FFC107]{text}[/dim #FFC107]")
+        prompt_area.add_class("visible")
+
+    def _clear_prompt_area(self) -> None:
+        """清空 prompt-area 的内容。"""
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update("")
 
     def _show_g_mode(self, prompt: str) -> None:
         """显示 g 模式的 UI。"""
-        hint_text = f"{prompt} | {self._full_output}"
-        prompt_area = self.query_one("#prompt-area", Static)
-        prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
-        prompt_area.add_class("visible")
+        self._set_prompt_area(f"{prompt} | {self._full_output}")
 
     def _show_i_mode(self, prompt: str, default: str | None) -> None:
         """显示 i 模式的 UI。"""
-        hint_text = f"{prompt} | {self._full_output}"
-        prompt_area = self.query_one("#prompt-area", Static)
-        prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
-        prompt_area.add_class("visible")
-        # 在 i 模式下，使用 search-input 作为输入框
+        self._set_prompt_area(f"{prompt} | {self._full_output}")
         input_widget = self.query_one("#search-input", Input)
         input_widget.placeholder = prompt
         input_widget.value = default or ""
@@ -233,58 +232,59 @@ class USelApp(App):
 
     def _do_search(self, query: str) -> None:
         """Perform search and update display."""
-        # 数字快捷方式：输入纯数字直接跳转到对应项
         if query.isdigit():
             index = int(query) - 1
             self._current_index = max(0, min(index, len(self._display_selections) - 1))
-            # 更新高亮
-            results = self.query_one("#results", VerticalScroll)
-            items = [w for w in results.children if isinstance(w, ItemWidget)]
-            for i, widget in enumerate(items):
-                if i == self._current_index:
-                    widget.add_class("selected-item")
-                else:
-                    widget.remove_class("selected-item")
+            self._update_selection_highlight()
             return
 
-        query_lower = query.lower()
-
-        # 根据模式选择基础数据
         if self._mode == "searching":
             base_selections = self._sorted_selections
-        else:  # resolving_g or resolving_i
-            if self._current_placeholder and self._current_placeholder.group_name:
-                base_selections = self._get_group_selections(self._current_placeholder.group_name)
-            else:
-                base_selections = []
+        elif self._current_placeholder and self._current_placeholder.group_name:
+            base_selections = self._get_group_selections(self._current_placeholder.group_name)
+        else:
+            base_selections = []
 
-        # 过滤（使用 display_title 包含序号）
-        if query_lower:
-            filtered = [
+        query_lower = query.lower()
+        filtered = (
+            [
                 s
                 for s in base_selections
                 if query_lower in s.display_title.lower()
                 or query_lower in s.output.lower()
                 or query_lower in s.group.lower()
             ]
-        else:
-            filtered = base_selections
+            if query_lower
+            else base_selections
+        )
 
         self._display_selections = filtered
         self._current_index = min(self._current_index, max(0, len(filtered) - 1))
-
-        results = self.query_one("#results", VerticalScroll)
-        results.remove_children()
-
-        for i, selection in enumerate(filtered):
-            item = ItemWidget(selection, i, selected=(i == self._current_index))
-            results.mount(item)
+        self._render_results()
 
     def _get_group_selections(self, group: str | None) -> list[Selection]:
         """获取指定 group 的选项。"""
         if not group:
             return []
         return [s for s in self._sorted_selections if s.group == group]
+
+    def _update_selection_highlight(self) -> None:
+        """更新选中项的高亮状态。"""
+        results = self.query_one("#results", VerticalScroll)
+        items = [w for w in results.children if isinstance(w, ItemWidget)]
+        for i, widget in enumerate(items):
+            if i == self._current_index:
+                widget.add_class("selected-item")
+            else:
+                widget.remove_class("selected-item")
+
+    def _render_results(self) -> None:
+        """渲染搜索结果列表。"""
+        results = self.query_one("#results", VerticalScroll)
+        results.remove_children()
+        for i, selection in enumerate(self._display_selections):
+            item = ItemWidget(selection, i, selected=(i == self._current_index))
+            results.mount(item)
 
     def _check_and_continue(self) -> bool:
         """检查 output 是否还有占位符，如有则进入对应的 resolve 模式。返回 False 表示已完成。"""
@@ -324,7 +324,7 @@ class USelApp(App):
             self._mode = "resolving_g"
             self._display_selections = group_selections
             self._current_index = 0
-            self._hide_resolve_ui()
+            self._clear_prompt_area()
             prompt = placeholder.prompt if placeholder.prompt else "请选择"
             self._show_g_mode(prompt)
             self._do_search("")
@@ -404,7 +404,7 @@ class USelApp(App):
             )
             self._mode = "searching"
             self._current_placeholder = None
-            self._hide_resolve_ui()
+            self._clear_prompt_area()
             # 继续检查是否有更多占位符
             if not self._check_and_continue():
                 self.exit(result=self._current_output)
@@ -430,7 +430,7 @@ class USelApp(App):
         )
         self._mode = "searching"
         self._current_placeholder = None
-        self._hide_resolve_ui()
+        self._clear_prompt_area()
 
         # 继续检查是否有更多占位符
         if not self._check_and_continue():

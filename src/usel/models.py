@@ -13,11 +13,8 @@ class Selection:
 
     @property
     def display_title(self) -> str:
-        """Get title to display, with index number prefix for search."""
-        base = self.title or self.output
-        # 序号在 ItemWidget 中添加，这里返回原始 title
-        # 让序号参与搜索：把序号作为 title 的一部分
-        return base
+        """Get title to display in the UI."""
+        return self.title or self.output
 
 
 @dataclass
