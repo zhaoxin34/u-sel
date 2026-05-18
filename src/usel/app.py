@@ -185,7 +185,6 @@ class USelApp(App):
     def compose(self) -> ComposeResult:
         yield Static("", id="prompt-area")
         yield Input(placeholder="Search...", id="search-input")
-        yield Input(placeholder="", id="resolve-input")
         yield VerticalScroll(id="results")
         yield Static("↵ confirm  q quit", id="hint")
 
@@ -201,33 +200,22 @@ class USelApp(App):
         """隐藏 resolve 模式的 UI 元素。"""
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update("")
-        resolve_input = self.query_one("#resolve-input", Input)
-        resolve_input.value = ""
-        resolve_input.display = False
-        search_input = self.query_one("#search-input", Input)
-        search_input.display = True
 
     def _show_g_mode(self, prompt: str) -> None:
         """显示 g 模式的 UI。"""
         hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
-        resolve_input = self.query_one("#resolve-input", Input)
-        resolve_input.display = False
-        search_input = self.query_one("#search-input", Input)
-        search_input.display = False
 
     def _show_i_mode(self, prompt: str, default: str | None) -> None:
         """显示 i 模式的 UI。"""
         hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
-        resolve_input = self.query_one("#resolve-input", Input)
-        resolve_input.value = default or ""
-        resolve_input.display = True
-        resolve_input.focus()
-        search_input = self.query_one("#search-input", Input)
-        search_input.display = False
+        # 在 i 模式下，使用 search-input 作为输入框
+        input_widget = self.query_one("#search-input", Input)
+        input_widget.placeholder = prompt
+        input_widget.value = default or ""
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle search input changes."""
@@ -416,16 +404,14 @@ class USelApp(App):
 
     def _confirm_input(self) -> None:
         """Confirm input from i mode."""
-        resolve_input = self.query_one("#resolve-input", Input)
-        value = resolve_input.value.strip()
+        # 从 search-input 获取用户输入
+        input_widget = self.query_one("#search-input", Input)
+        value = input_widget.value.strip()
+        input_widget.value = ""
 
         if not value:
             print("错误：输入不能为空", file=sys.stderr)
             sys.exit(1)
-
-        # 清空输入框
-        input_widget = self.query_one("#search-input", Input)
-        input_widget.value = ""
 
         if self._current_placeholder is None:
             print("错误：内部状态错误", file=sys.stderr)
