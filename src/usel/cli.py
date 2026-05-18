@@ -66,8 +66,8 @@ def main(config: Any, list_items: bool, execute: bool) -> None:
 
     if result:
         if execute:
-            # 直接执行命令
-            subprocess.run(result, shell=True)
+            # 直接执行命令（使用 zsh）
+            subprocess.run(["zsh", "-c", result])
         else:
             click.echo(result)
 

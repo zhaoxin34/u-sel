@@ -71,6 +71,12 @@ u-sel/
 - Don't add new imports without type stubs if strict type checking needed
 - Avoid editing venv or cache directories - they are auto-generated
 
+## Terminology
+
+| Term   | Description                                       |
+| ------ | ------------------------------------------------- |
+| 占位符 | `{{group_name}}` 语法，用于 output 字段的动态替换 |
+
 ## Notes
 
 ### Config File Format (sels.yml)
