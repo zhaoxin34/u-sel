@@ -164,6 +164,11 @@ class USelApp(App):
         padding: 1 2;
         background: $panel;
         color: $text;
+        display: none;
+    }
+
+    #prompt-area.visible {
+        display: block;
     }
     """
 
@@ -206,12 +211,14 @@ class USelApp(App):
         hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
+        prompt_area.add_class("visible")
 
     def _show_i_mode(self, prompt: str, default: str | None) -> None:
         """显示 i 模式的 UI。"""
         hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
         prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
+        prompt_area.add_class("visible")
         # 在 i 模式下，使用 search-input 作为输入框
         input_widget = self.query_one("#search-input", Input)
         input_widget.placeholder = prompt
