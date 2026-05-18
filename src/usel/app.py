@@ -17,7 +17,7 @@ from .models import Selection
 # 示例: {{g|zellij}}, {{i:请输入端口|8080}}, {{g:选择容器|zellij}}
 PLACEHOLDER_PATTERN = re.compile(
     r"\{\{(?P<intent>g|i)"
-    r"(?::(?P<prompt>[^|]+))?"
+    r"(?::(?P<prompt>[^}|]+))?"
     r"(?:\|(?P<default>[^}]+))?"
     r"\}\}"
 )
