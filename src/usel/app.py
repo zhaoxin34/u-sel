@@ -215,15 +215,17 @@ class USelApp(App):
 
     def _show_g_mode(self, prompt: str) -> None:
         """显示 g 模式的 UI。"""
+        hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
-        prompt_area.update(f"[dim #888888]{prompt}[/dim #888888]")
+        prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
         resolve_input = self.query_one("#resolve-input", Input)
         resolve_input.display = False
 
     def _show_i_mode(self, prompt: str, default: str | None) -> None:
         """显示 i 模式的 UI。"""
+        hint_text = f"{prompt} | {self._full_output}"
         prompt_area = self.query_one("#prompt-area", Static)
-        prompt_area.update(f"[dim #888888]{prompt}[/dim #888888]")
+        prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
         resolve_input = self.query_one("#resolve-input", Input)
         resolve_input.value = default or ""
         resolve_input.display = True
@@ -280,13 +282,6 @@ class USelApp(App):
 
         results = self.query_one("#results", VerticalScroll)
         results.remove_children()
-
-        # 添加嵌套提示（如果正在嵌套）
-        if self._mode != "searching" and self._current_placeholder:
-            hint_text = (
-                f"正在解析 {{{{{self._current_placeholder.intent}...}}}}... (第 {self._depth} 层)"
-            )
-            results.mount(Static(hint_text, classes="nesting-hint"))
 
         for i, selection in enumerate(filtered):
             item = ItemWidget(selection, i, selected=(i == self._current_index))
