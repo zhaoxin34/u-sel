@@ -122,7 +122,7 @@ class USelApp(App):
         background: $surface;
     }
 
-    #search-input {
+    Input {
         width: 100%;
         border: none;
         background: $panel;
@@ -160,17 +160,6 @@ class USelApp(App):
         padding: 1 2;
         background: $panel;
         color: $text;
-    }
-
-    #input-area {
-        height: auto;
-        padding: 1 2;
-        background: $panel;
-    }
-
-    #input-area Input {
-        width: 100%;
-        border: solid $primary;
     }
     """
 
@@ -212,6 +201,8 @@ class USelApp(App):
         resolve_input = self.query_one("#resolve-input", Input)
         resolve_input.value = ""
         resolve_input.display = False
+        search_input = self.query_one("#search-input", Input)
+        search_input.display = True
 
     def _show_g_mode(self, prompt: str) -> None:
         """显示 g 模式的 UI。"""
@@ -220,6 +211,8 @@ class USelApp(App):
         prompt_area.update(f"[dim #FFC107]{hint_text}[/dim #FFC107]")
         resolve_input = self.query_one("#resolve-input", Input)
         resolve_input.display = False
+        search_input = self.query_one("#search-input", Input)
+        search_input.display = False
 
     def _show_i_mode(self, prompt: str, default: str | None) -> None:
         """显示 i 模式的 UI。"""
@@ -230,6 +223,8 @@ class USelApp(App):
         resolve_input.value = default or ""
         resolve_input.display = True
         resolve_input.focus()
+        search_input = self.query_one("#search-input", Input)
+        search_input.display = False
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle search input changes."""
