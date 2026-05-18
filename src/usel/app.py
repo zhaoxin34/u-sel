@@ -129,6 +129,10 @@ class USelApp(App):
         padding: 1 2;
     }
 
+    #resolve-input {
+        display: none;
+    }
+
     #results {
         height: 1fr;
     }
@@ -187,8 +191,6 @@ class USelApp(App):
 
     def on_mount(self) -> None:
         """Initialize the app."""
-        resolve_input = self.query_one("#resolve-input", Input)
-        resolve_input.display = False
         input_widget = self.query_one("#search-input", Input)
         input_widget.focus()
         self._mode = "searching"
