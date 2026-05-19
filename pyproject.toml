@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Your Name", email = "your@email.com" }]
-dependencies = ["textual>=0.50.0", "pyyaml>=6.0", "click>=8.0"]
+dependencies = ["textual>=0.50.0", "pyyaml>=6.0", "click>=8.0", "pfzy>=0.3"]
 
 [project.scripts]
 usel = "usel.cli:main"
@@ -44,6 +44,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "click.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pfzy.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass
 from typing import Literal
 
+from pfzy import fzy_scorer
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
@@ -96,12 +97,101 @@ def replace_placeholder(output: str, placeholder: Placeholder, value: str) -> st
     return output.replace(ph, value, 1)
 
 
-class ItemWidget(Static):
-    """Wrapper for selection items to track selection state."""
+# ========== FZF Fuzzy Search ==========
 
-    def __init__(self, selection: Selection, index: int, selected: bool = False) -> None:
+# 高亮颜色 (金色)
+HIGHLIGHT_COLOR = "#FFD700"
+
+
+def fuzzy_search(
+    query: str, selections: list[Selection]
+) -> list[tuple[Selection, list[int], float]]:
+    """使用 pfzy fzy_scorer 进行模糊搜索。
+
+    对每个候选项的 title、output、group 三个字段分别计算匹配分数，
+    取最高分作为最终排序依据。
+
+    Args:
+        query: 搜索词
+        selections: 候选项列表
+
+    Returns:
+        排序后的结果列表，每个元素为 (Selection, indices, score)
+        indices 是最佳匹配字段的匹配位置列表
+    """
+    if not query:
+        # 空查询返回所有选项
+        return [(s, [], 0.0) for s in selections]
+
+    results: list[tuple[Selection, list[int], float]] = []
+
+    for selection in selections:
+        # 计算三个字段的匹配分数
+        best_score = float("-inf")
+        best_indices: list[int] = []
+
+        for field_value in [selection.display_title, selection.output, selection.group]:
+            score, indices = fzy_scorer(query, field_value)
+            if indices is not None and score > best_score:
+                best_score = score
+                best_indices = indices
+
+        # 如果没有匹配，跳过此项（或给予最低分）
+        if best_score == float("-inf"):
+            continue
+
+        results.append((selection, best_indices, best_score))
+
+    # 按分数降序排列
+    results.sort(key=lambda x: x[2], reverse=True)
+    return results
+
+
+def build_highlighted_text(text: str, indices: list[int]) -> str:
+    """基于匹配 indices 构建带高亮的文本。
+
+    Args:
+        text: 原始文本
+        indices: 匹配的字符位置列表
+
+    Returns:
+        Textual markup 字符串，匹配字符用高亮颜色包裹
+    """
+    if not indices:
+        return text
+
+    indices_set = set(indices)
+    result = []
+    for i, char in enumerate(text):
+        if i in indices_set:
+            result.append(f"[#FFD700]{char}[/#FFD700]")
+        else:
+            result.append(char)
+    return "".join(result)
+
+
+class ItemWidget(Static):
+    """Wrapper for selection items to track selection state and highlight matches."""
+
+    def __init__(
+        self,
+        selection: Selection,
+        index: int,
+        selected: bool = False,
+        title_indices: list[int] | None = None,
+        output_indices: list[int] | None = None,
+    ) -> None:
         num = index + 1
-        content = f"[dim #888888]{num:>3}. [/dim #888888][#C4E88D]{selection.display_title}[/#C4E88D]  [dim #FE747E]`{selection.output}`[/dim #FE747E]  [dim #4FD6BE]({selection.group})[/dim #4FD6BE]"
+
+        # 构建内容，高亮匹配的字符
+        highlighted_title = build_highlighted_text(selection.display_title, title_indices or [])
+        highlighted_output = build_highlighted_text(selection.output, output_indices or [])
+        content = (
+            f"[dim #888888]{num:>3}. [/dim #888888][#C4E88D]{highlighted_title}[/#C4E88D]  "
+            f"[dim #FE747E]`{highlighted_output}`[/dim #FE747E]  "
+            f"[dim #4FD6BE]({selection.group})[/dim #4FD6BE]"
+        )
+
         super().__init__(content, markup=True)
         self.selection = selection
         self.index = index
@@ -187,6 +277,10 @@ class USelApp(App):
         # 当前显示的选项（可能过滤过）
         self._display_selections: list[Selection] = []
 
+        # Fuzzy search 结果: (Selection, title_indices, output_indices)
+        # 用于高亮显示
+        self._fuzzy_results: list[tuple[Selection, list[int], list[int]]] = []
+
     def compose(self) -> ComposeResult:
         yield Static("", id="prompt-area")
         yield Input(placeholder="Search...", id="search-input")
@@ -231,7 +325,7 @@ class USelApp(App):
         self._do_search(event.value)
 
     def _do_search(self, query: str) -> None:
-        """Perform search and update display."""
+        """Perform search and update display using fuzzy matching."""
         if query.isdigit():
             index = int(query) - 1
             self._current_index = max(0, min(index, len(self._display_selections) - 1))
@@ -245,21 +339,30 @@ class USelApp(App):
         else:
             base_selections = []
 
-        query_lower = query.lower()
-        filtered = (
-            [
-                s
-                for s in base_selections
-                if query_lower in s.display_title.lower()
-                or query_lower in s.output.lower()
-                or query_lower in s.group.lower()
-            ]
-            if query_lower
-            else base_selections
-        )
+        if not query:
+            # 空查询显示所有选项
+            self._fuzzy_results = [(s, [], []) for s in base_selections]
+        else:
+            # 使用 fuzzy search
+            results = fuzzy_search(query, base_selections)
+            # 找出最佳匹配字段用于高亮
+            self._fuzzy_results = []
+            for selection, indices, _score in results:
+                title_score, title_indices = fzy_scorer(query, selection.display_title)
+                output_score, output_indices = fzy_scorer(query, selection.output)
 
-        self._display_selections = filtered
-        self._current_index = min(self._current_index, max(0, len(filtered) - 1))
+                if title_indices is not None and (
+                    output_indices is None or title_score >= output_score
+                ):
+                    self._fuzzy_results.append((selection, indices, []))
+                elif output_indices is not None:
+                    self._fuzzy_results.append((selection, [], indices))
+                else:
+                    self._fuzzy_results.append((selection, [], []))
+
+        # 更新显示的选项列表
+        self._display_selections = [s for s, _, _ in self._fuzzy_results]
+        self._current_index = min(self._current_index, max(0, len(self._display_selections) - 1))
         self._render_results()
 
     def _get_group_selections(self, group: str | None) -> list[Selection]:
@@ -282,8 +385,14 @@ class USelApp(App):
         """渲染搜索结果列表。"""
         results = self.query_one("#results", VerticalScroll)
         results.remove_children()
-        for i, selection in enumerate(self._display_selections):
-            item = ItemWidget(selection, i, selected=(i == self._current_index))
+        for i, (selection, title_indices, output_indices) in enumerate(self._fuzzy_results):
+            item = ItemWidget(
+                selection,
+                i,
+                selected=(i == self._current_index),
+                title_indices=title_indices if title_indices else None,
+                output_indices=output_indices if output_indices else None,
+            )
             results.mount(item)
 
     def _check_and_continue(self) -> bool:
