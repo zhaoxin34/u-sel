@@ -319,8 +319,9 @@ class USelApp(App):
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle search input changes."""
-        if self._mode != "searching":
-            return  # resolve 模式下忽略搜索
+        # g 模式和 searching 模式都支持搜索
+        if self._mode not in ("searching", "resolving_g"):
+            return  # i 模式下忽略搜索
         self._current_index = 0
         self._do_search(event.value)
 
