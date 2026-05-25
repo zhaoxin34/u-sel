@@ -2,7 +2,8 @@
 
 help:
 	@echo "Available commands:"
-	@echo "  make install    - Install usel (editable)"
+	@echo "  make install    - Install usel (editable, project only)"
+	@echo "  make install-global - Install usel globally (uv tool, editable)"
 	@echo "  make dev        - Install with dev dependencies"
 	@echo "  make run        - Run usel application"
 	@echo "  make test       - Run tests"
@@ -13,6 +14,9 @@ help:
 
 install:
 	uv pip install -e .
+
+install-global:
+	@uv tool install -e . && echo "✓ usel installed globally. Run 'hash -r' or restart shell to use it."
 
 dev:
 	uv pip install -e . --group dev
